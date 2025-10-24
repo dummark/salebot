@@ -5,6 +5,86 @@ const { STORE_URL } = require('../config');
 
 const DEFAULT_CATEGORY_PATH = 'catalog';
 
+function extractFromSrcset(value = '') {
+  return value
+    .split(',')
+    .map((chunk) => chunk.trim().split(' ')[0])
+    .find((chunk) => chunk && !chunk.startsWith('data:')) || null;
+}
+
+function normalizeStoreUrl(value) {
+  if (!value) {
+    return null;
+  }
+
+  const cleaned = value
+    .trim()
+    .replace(/^url\((['"]?)(.*?)\1\)$/i, '$2');
+
+  if (!cleaned || cleaned.startsWith('data:')) {
+    return null;
+  }
+
+  try {
+    return new URL(cleaned, STORE_URL).toString();
+  } catch (error) {
+    logger.debug('Не удалось нормализовать ссылку %s: %s', cleaned, error.message);
+    return null;
+  }
+}
+
+function findProductImage(element, $) {
+  const images = $(element).find('img').toArray();
+
+  for (const img of images) {
+    const $img = $(img);
+    const attributes = [
+      'data-src',
+      'data-original',
+      'data-lazy',
+      'data-large_image',
+      'data-large-image',
+      'data-image',
+      'src',
+      'data-srcset',
+      'srcset'
+    ];
+
+    for (const attribute of attributes) {
+      const value = $img.attr(attribute);
+      if (!value) {
+        continue;
+      }
+
+      const normalized = normalizeStoreUrl(
+        attribute.includes('srcset') ? extractFromSrcset(value) : value
+      );
+
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    const style = $img.attr('style');
+    if (style) {
+      const match = style.match(/url\((['"]?)(.*?)\1\)/i);
+      if (match) {
+        const normalized = normalizeStoreUrl(match[2]);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+  }
+
+  const linkedImage = $(element)
+    .find('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"], a[href*=".webp"], a[href*=".gif"]')
+    .first()
+    .attr('href');
+
+  return normalizeStoreUrl(linkedImage);
+}
+
 function parseProduct(element, $) {
   const title = $(element).find('.product-name a, .product-title, .product__title').first().text().trim();
   const priceText = $(element)
@@ -21,14 +101,14 @@ function parseProduct(element, $) {
     .trim() || 'Уточняйте наличие';
   const linkPath = $(element).find('a').first().attr('href') || '';
   const link = linkPath.startsWith('http') ? linkPath : new URL(linkPath, STORE_URL).toString();
-  const image = $(element).find('img').first().attr('src');
+  const image = findProductImage(element, $);
 
   return {
     title: title || 'Без названия',
     price,
     availability,
     link,
-    image: image ? (image.startsWith('http') ? image : new URL(image, STORE_URL).toString()) : null
+    image
   };
 }
 

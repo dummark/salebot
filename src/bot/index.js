@@ -1,4 +1,4 @@
-const { Telegraf, Markup } = require('telegraf');
+const { Telegraf } = require('telegraf');
 const cron = require('node-cron');
 const { TELEGRAM_TOKEN, CACHE_TTL_MINUTES } = require('../config');
 const logger = require('../utils/consoleLogger');
@@ -40,21 +40,29 @@ function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(price);
 }
 
-function formatProductCard(product, index, total) {
-  const header = `Товар ${index + 1} из ${total}`;
-  const title = `*${escapeMarkdown(product.title)}*`;
-  const price = escapeMarkdown(formatPrice(product.price));
-  const availability = escapeMarkdown(product.availability || 'Уточняйте наличие');
-  const link = product.link ? `\n[Перейти на сайт](${escapeMarkdown(product.link)})` : '';
-  const image = product.image ? `\nИзображение: ${escapeMarkdown(product.image)}` : '';
+function formatProductCard(product, index, total, context) {
+  const lines = [];
 
-  return `${escapeMarkdown(header)}\n${title}\n${price}\n${availability}${link}${image}`;
+  if (context) {
+    lines.push(escapeMarkdown(context));
+  }
+
+  lines.push(escapeMarkdown(`Товар ${index + 1} из ${total}`));
+  lines.push(`*${escapeMarkdown(product.title)}*`);
+  lines.push(escapeMarkdown(formatPrice(product.price)));
+  lines.push(escapeMarkdown(product.availability || 'Уточняйте наличие'));
+
+  if (product.link) {
+    lines.push(`[Перейти на сайт](${escapeMarkdown(product.link)})`);
+  }
+
+  return lines.join('\n');
 }
 
 function getNavigationKeyboard() {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback('◀️ Назад', 'prev'), Markup.button.callback('▶️ Далее', 'next')]
-  ]);
+  return {
+    inline_keyboard: [[{ text: '◀️ Назад', callback_data: 'prev' }, { text: '▶️ Далее', callback_data: 'next' }]]
+  };
 }
 
 function setSession(chatId, data) {
@@ -81,9 +89,27 @@ async function sendProduct(ctx, products, index = 0) {
   });
 
   const product = products[normalizedIndex];
-  const message = formatProductCard(product, normalizedIndex, products.length);
+  const session = getSession(ctx.chat.id);
+  const message = formatProductCard(product, normalizedIndex, products.length, session?.context);
+  const keyboard = { reply_markup: getNavigationKeyboard() };
 
-  await ctx.replyWithMarkdown(message, getNavigationKeyboard());
+  if (product.image) {
+    try {
+      await ctx.replyWithPhoto(
+        { url: product.image },
+        {
+          caption: message,
+          parse_mode: 'MarkdownV2',
+          ...keyboard
+        }
+      );
+      return;
+    } catch (error) {
+      logger.warn('Не удалось отправить изображение товара %s: %s', product.link || product.title, error.message);
+    }
+  }
+
+  await ctx.replyWithMarkdownV2(message, keyboard);
 }
 
 async function handleStart(ctx) {
