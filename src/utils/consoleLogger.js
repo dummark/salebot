@@ -14,7 +14,9 @@ function formatMessage(level, message, args) {
   if (!args.length) {
     return base;
   }
-  return `${base} ${args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg))).join(' ')}`;
+  return `${base} ${args
+    .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+    .join(' ')}`;
 }
 
 function log(level, message, ...args) {

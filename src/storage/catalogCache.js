@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const logger = require('../utils/logger');
+const logger = require('../utils/consoleLogger');
 const { CACHE_FILE, CACHE_TTL_MINUTES } = require('../config');
 
 const cachePath = path.resolve(CACHE_FILE);

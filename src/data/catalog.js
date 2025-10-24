@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const logger = require('../utils/logger');
+const logger = require('../utils/consoleLogger');
 const { STORE_URL } = require('../config');
 
 const DEFAULT_CATEGORY_PATH = 'catalog';

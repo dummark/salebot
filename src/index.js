@@ -1,4 +1,4 @@
-const logger = require('./utils/logger');
+const logger = require('./utils/consoleLogger');
 const { bot, loadCatalog, refreshCatalogJob } = require('./bot');
 
 async function bootstrap() {

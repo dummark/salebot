@@ -70,7 +70,7 @@ src/
   storage/
     catalogCache.js  # Файловый кеш каталога
   utils/
-    logger.js        # Настройка логирования
+    consoleLogger.js # Настройка логирования
   index.js           # Точка входа, запуск бота
 storage/
   catalog-cache.json # Файл для кеша (создаётся автоматически)

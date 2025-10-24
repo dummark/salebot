@@ -1,7 +1,7 @@
 const { Telegraf, Markup } = require('telegraf');
 const cron = require('node-cron');
 const { TELEGRAM_TOKEN, CACHE_TTL_MINUTES } = require('../config');
-const logger = require('../utils/logger');
+const logger = require('../utils/consoleLogger');
 const { fetchCatalog, fetchCategories } = require('../data/catalog');
 const { getCatalog, updateCatalog } = require('../storage/catalogCache');
 

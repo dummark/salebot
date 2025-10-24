@@ -1,4 +1,4 @@
-const logger = require('../src/utils/logger');
+const logger = require('../src/utils/consoleLogger');
 const { loadCatalog } = require('../src/bot');
 
 (async () => {
